@@ -31,6 +31,45 @@ t1_29dof_loco = InferenceConfig(
     task=task.locomotion,
 )
 
+h1_19dof_loco = InferenceConfig(
+    robot=robot.h1_19dof,
+    observation=observation.loco_h1_19dof,
+    task=task.locomotion,
+)
+
+# fmt: off
+_h1_19dof_wbt_robot = replace(
+    robot.h1_19dof,
+    stiff_startup_pos=(
+        # H1 default standing from Unitree reference
+        0.0, 0.0, -0.4, 0.8, -0.4,          # left leg: yaw, roll, pitch, knee, ankle
+        0.0, 0.0, -0.4, 0.8, -0.4,          # right leg: yaw, roll, pitch, knee, ankle
+        0.0,                                  # torso
+        0.2, 0.2, 0.0, 0.6,                  # left arm: shld_pitch, shld_roll, shld_yaw, elbow
+        0.2, -0.2, 0.0, 0.6,                 # right arm: shld_pitch, shld_roll, shld_yaw, elbow
+    ),
+    stiff_startup_kp=(
+        200.0, 200.0, 200.0, 300.0, 40.0,
+        200.0, 200.0, 200.0, 300.0, 40.0,
+        300.0,
+        100.0, 100.0, 100.0, 100.0,
+        100.0, 100.0, 100.0, 100.0,
+    ),
+    stiff_startup_kd=(
+        5.0, 5.0, 5.0, 6.0, 2.0,
+        5.0, 5.0, 5.0, 6.0, 2.0,
+        6.0,
+        2.0, 2.0, 2.0, 2.0,
+        2.0, 2.0, 2.0, 2.0,
+    ),
+)
+
+h1_19dof_wbt = InferenceConfig(
+    robot=_h1_19dof_wbt_robot,
+    observation=observation.h1_19dof_wbt,
+    task=task.wbt,
+)
+
 # fmt: off
 _g1_29dof_wbt_robot = replace(
     robot.g1_29dof,
@@ -69,7 +108,9 @@ g1_29dof_wbt = InferenceConfig(
 DEFAULTS = {
     "g1-29dof-loco": g1_29dof_loco,
     "t1-29dof-loco": t1_29dof_loco,
+    "h1-19dof-loco": h1_19dof_loco,
     "g1-29dof-wbt": g1_29dof_wbt,
+    "h1-19dof-wbt": h1_19dof_wbt,
 }
 
 # Track whether extensions have been loaded

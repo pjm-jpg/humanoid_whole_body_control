@@ -53,6 +53,8 @@ class MotionLoader:
     def _get_index_of_a_in_b(self, a_names: List[str], b_names: List[str], device: str = "cpu") -> torch.Tensor:
         indexes = []
         for name in a_names:
+            if name not in b_names:
+                name = next((k for k, v in FAKE_BODY_NAME_ALIASES.items() if v == name and k in b_names), name)
             assert name in b_names, f"The specified name ({name}) doesn't exist: {b_names}"
             indexes.append(b_names.index(name))
         return torch.tensor(indexes, dtype=torch.long, device=device)
@@ -1427,6 +1429,8 @@ class MotionCommand(CommandTermBase):
     def _get_index_of_a_in_b(self, a_names: List[str], b_names: List[str], device: str = "cpu") -> torch.Tensor:
         indexes = []
         for name in a_names:
+            if name not in b_names:
+                name = next((k for k, v in FAKE_BODY_NAME_ALIASES.items() if v == name and k in b_names), name)
             assert name in b_names, f"The specified name ({name}) doesn't exist: {b_names}"
             indexes.append(b_names.index(name))
         return torch.tensor(indexes, dtype=torch.long, device=device)

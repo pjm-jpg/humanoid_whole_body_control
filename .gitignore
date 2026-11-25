@@ -1,9 +1,26 @@
 # Compiled Python bytecode
 *.py[cod]
+
 # Log files
 *.log
-* ONNX files
+
+# Model checkpoints and exported runtimes
 *.onnx
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.engine
+*.plan
+
+# Generated motion and training datasets
+*.npz
+*.npy
+*.h5
+*.hdf5
+*.bag
+*.db3
+src/holosoma_retargeting/holosoma_retargeting/demo_data/**/*.csv
 
 # IDE files
 .idea/
@@ -19,6 +36,10 @@ Thumbs.db
 # Experiment logs
 logs
 logs_eval
+/runs/
+/outputs/
+wandb/
+.wandb/
 
 # Isaacsim Converted Files
 src/holosoma/holosoma/data/robots/converted/
@@ -26,10 +47,26 @@ src/holosoma/holosoma/data/robots/converted_rank*/
 
 # Virtual environments
 .venv/
+venv/
 
-# other
-*.egg-info
-__pycache__
+# Tool and package caches
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets*.json
+secrets*.yaml
+secrets*.yml
 
 # Gas Town (added by gt)
 .runtime/

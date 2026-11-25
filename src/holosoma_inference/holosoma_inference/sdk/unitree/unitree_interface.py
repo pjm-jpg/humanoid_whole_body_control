@@ -54,7 +54,12 @@ class UnitreeInterface(BaseInterface):
 
         joint_pos = np.zeros(self.robot_config.num_joints)
         joint_vel = np.zeros(self.robot_config.num_joints)
-        motor_order = self._unitree_motor_order or self.robot_config.joint2motor
+        # Only apply SDK motor order for real hardware; sim2sim ("lo") uses direct order
+        need_mapping = self.interface_str and self.interface_str != "lo"
+        if need_mapping:
+            motor_order = self._unitree_motor_order or self.robot_config.joint2motor
+        else:
+            motor_order = tuple(range(self.robot_config.num_joints))
 
         for j_id in range(self.robot_config.num_joints):
             m_id = motor_order[j_id]
@@ -79,7 +84,11 @@ class UnitreeInterface(BaseInterface):
         cmd_kp = np.zeros(self.robot_config.num_motors) if kp_override is not None else None
         cmd_kd = np.zeros(self.robot_config.num_motors) if kd_override is not None else None
 
-        motor_order = self._unitree_motor_order or self.robot_config.joint2motor
+        need_mapping = self.interface_str and self.interface_str != "lo"
+        if need_mapping:
+            motor_order = self._unitree_motor_order or self.robot_config.joint2motor
+        else:
+            motor_order = tuple(range(self.robot_config.num_joints))
         for j_id in range(self.robot_config.num_joints):
             m_id = motor_order[j_id]
             cmd_q_target[m_id] = float(cmd_q[j_id])

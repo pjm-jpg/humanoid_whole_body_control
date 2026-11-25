@@ -377,6 +377,8 @@ class WholeBodyTrackingPolicy(BasePolicy):
                 self.motion_clip_progressing = False
                 self.curr_motion_timestep = end
 
+
+
     def _handle_stop_policy(self):
         """Handle stop policy action."""
         self.use_policy_action = False

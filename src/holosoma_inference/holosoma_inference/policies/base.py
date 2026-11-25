@@ -279,6 +279,20 @@ class BasePolicy:
         self.cmd_dq = np.zeros(self.num_dofs)
         self.cmd_tau = np.zeros(self.num_dofs)
 
+        # Safety: rate limiting and joint bounds
+        self._prev_safe_q: np.ndarray | None = None
+        # Stiff hold ramp: slowly enter over 2 seconds
+        self._stiff_ramp_steps: int = 0  # remaining steps (0 = no ramp)
+        self._stiff_ramp_total: int = 100  # 2 seconds at 50Hz
+        self._stiff_ramp_start: np.ndarray | None = None
+        self._stiff_ramp_target: np.ndarray | None = None
+        # Policy start ramp: blend into first policy output over 0.5s
+        self._policy_ramp_steps: int = 0
+        self._policy_ramp_total: int = 25  # 0.5s at 50Hz
+        self._policy_ramp_start: np.ndarray | None = None
+        self._policy_ramp_target: np.ndarray | None = None
+        self._max_step_delta: float = 0.1  # max 0.1 rad/step (smooth entry)
+
     def _init_phase_components(self):
         """Initialize phase components."""
         self.use_phase = self.config.task.use_phase
@@ -695,6 +709,42 @@ class BasePolicy:
                         raise NotImplementedError("Upper body controller not implemented")
                 q_target = scaled_policy_action + self.default_dof_angles
 
+
+                        # ---- Safety: smooth ramps + rate limit ----
+            # Stiff hold entry: 2s smooth ramp from current pose to target.
+            if not use_policy and not get_ready:
+                if self._stiff_ramp_steps == 0 and self._prev_safe_q is None:
+                    self._stiff_ramp_steps = self._stiff_ramp_total
+                if self._stiff_ramp_steps > 0:
+                    if self._stiff_ramp_start is None:
+                        self._stiff_ramp_start = robot_state_data[0, 7:7 + self.num_dofs].copy()
+                        self._stiff_ramp_target = q_target[0].copy()
+                    t = 1.0 - self._stiff_ramp_steps / self._stiff_ramp_total
+                    blend = 1.0 - (1.0 - t) * (1.0 - t)  # ease-out quadratic
+                    q_target[0] = (1.0 - blend) * self._stiff_ramp_start + blend * self._stiff_ramp_target
+                    self._stiff_ramp_steps -= 1
+            # Policy start: blend from current pose to first few policy outputs
+            elif use_policy and not get_ready and self._policy_ramp_steps > 0:
+                if self._policy_ramp_start is None:
+                    self._policy_ramp_start = robot_state_data[0, 7:7 + self.num_dofs].copy()
+                    self._policy_ramp_target = q_target[0].copy()
+                t = 1.0 - self._policy_ramp_steps / self._policy_ramp_total
+                blend = 1.0 - (1.0 - t) * (1.0 - t)  # ease-out
+                q_target[0] = (1.0 - blend) * self._policy_ramp_start + blend * self._policy_ramp_target
+                self._policy_ramp_steps -= 1
+            else:
+                self._stiff_ramp_start = None
+                self._policy_ramp_start = None  # reset either way
+            
+            # Rate limiting: smooth all commands (stiff hold AND policy)
+            if self._prev_safe_q is not None:
+                delta = np.clip(
+                    q_target[0] - self._prev_safe_q,
+                    -self._max_step_delta,
+                    self._max_step_delta,
+                )
+                q_target[0] = self._prev_safe_q + delta
+            self._prev_safe_q = q_target[0].copy()
             # Prepare command (reuse pre-allocated arrays)
             self.cmd_q[:] = q_target[0] + self.joint_offsets
 
@@ -791,6 +841,9 @@ class BasePolicy:
     def _handle_stop_policy(self):
         """Handle stop policy action."""
         self.use_policy_action = False
+        self._prev_safe_q = None  # reset rate limiter on stop
+        self._stiff_ramp_steps = self._stiff_ramp_total  # start 2s ramp
+        self._stiff_ramp_start = None  # will be captured on first command
         self.get_ready_state = False
         self.logger.info("Actions set to zero")
         if hasattr(self.interface, "no_action"):
