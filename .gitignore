@@ -13,6 +13,9 @@
 *.engine
 *.plan
 
+# Local source/package archives
+*.tar.gz
+
 # Generated motion and training datasets
 *.npz
 *.npy
